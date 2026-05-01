@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Plotagens</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;color:#1e293b;min-height:100vh}
+
+  /* HEADER */
+  .header{background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 3px 12px rgba(37,99,235,.35)}
+  .header-left h1{font-size:17px;font-weight:700;letter-spacing:-.3px}
+  .header-left p{font-size:11px;opacity:.75;margin-top:2px}
+  .btn-new{background:#fff;color:#2563eb;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap}
+  .btn-new:hover{background:#eff6ff;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+
+  /* CARDS */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 20px 0}
+  .card{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-top:3px solid #2563eb;transition:transform .2s}
+  .card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.1)}
+  .card.green{border-top-color:#16a34a}
+  .card.amber{border-top-color:#d97706}
+  .card-icon{font-size:20px;margin-bottom:6px}
+  .card-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#64748b;font-weight:700}
+  .card-value{font-size:22px;font-weight:800;color:#0f172a;margin-top:4px;line-height:1}
+  .card-sub{font-size:11px;color:#94a3b8;margin-top:4px}
+
+  /* FILTER BAR */
+  .bar{padding:14px 20px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .bar label{font-size:12px;font-weight:700;color:#475569}
+  .bar input[type=month]{padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#1e293b;background:#fff;cursor:pointer;outline:none}
+  .bar input[type=month]:focus{border-color:#2563eb}
+  .btn-refresh{background:#eff6ff;color:#2563eb;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:background .2s}
+  .btn-refresh:hover{background:#dbeafe}
+
+  /* TABLE */
+  .table-wrap{padding:0 20px 20px;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  th{background:#f8fafc;padding:11px 14px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#64748b;border-bottom:1px solid #e2e8f0}
+  td{padding:11px 14px;font-size:13px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#f8fafc}
+
+  .badge{display:inline-flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all .2s;white-space:nowrap}
+  .badge.pago{background:#dcfce7;color:#16a34a}
+  .badge.pago:hover{background:#bbf7d0}
+  .badge.pendente{background:#fef3c7;color:#d97706}
+  .badge.pendente:hover{background:#fde68a}
+
+  .btn-del{background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:14px;padding:5px 7px;border-radius:6px;transition:all .2s;line-height:1}
+  .btn-del:hover{color:#ef4444;background:#fef2f2}
+
+  .empty{text-align:center;padding:48px 20px;color:#94a3b8}
+  .empty-icon{font-size:44px;margin-bottom:10px}
+  .empty p{font-size:14px;line-height:1.6}
+
+  /* MODAL */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+  .overlay.on{display:flex}
+  .modal{background:#fff;border-radius:18px;padding:24px;width:340px;max-width:95vw;box-shadow:0 24px 60px rgba(0,0,0,.22);animation:up .22s ease}
+  @keyframes up{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .modal-title{font-size:16px;font-weight:800;margin-bottom:18px;color:#0f172a;display:flex;align-items:center;gap:8px}
+  .fg{margin-bottom:13px}
+  .fg label{display:block;font-size:11px;font-weight:700;color:#475569;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+  .fg input,.fg select{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;color:#1e293b;background:#f8fafc;transition:border .2s;outline:none}
+  .fg input:focus,.fg select:focus{border-color:#2563eb;background:#fff}
+  .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .modal-actions{display:flex;gap:8px;margin-top:18px}
+  .btn-cancel{flex:1;padding:10px;border:1.5px solid #e2e8f0;background:#fff;border-radius:9px;cursor:pointer;font-size:13px;color:#64748b;font-weight:700;transition:background .2s}
+  .btn-cancel:hover{background:#f8fafc}
+  .btn-save{flex:2;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:14px;font-weight:800;transition:background .2s}
+  .btn-save:hover{background:#1d4ed8}
+  .btn-save:disabled{background:#93c5fd;cursor:not-allowed}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(70px);background:#0f172a;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;transition:transform .28s cubic-bezier(.34,1.56,.64,1);z-index:200;white-space:nowrap}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+
+  /* SPINNER */
+  .loading-box{text-align:center;padding:48px;color:#94a3b8;font-size:13px}
+  .spin{width:26px;height:26px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:rot .7s linear infinite;margin:0 auto 12px}
+  @keyframes rot{to{transform:rotate(360deg)}}
+
+  /* ERROR */
+  .error-box{margin:0 20px 20px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;font-size:13px;color:#dc2626}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>🖨️ Controle de Plotagens</h1>
+    <p id="mes-label">—</p>
+  </div>
+  <button class="btn-new" onclick="abrirModal()">+ Nova Plotagem</button>
+</div>
+
+<!-- CARDS -->
+<div class="cards">
+  <div class="card">
+    <div class="card-icon">📊</div>
+    <div class="card-label">Total do Mês</div>
+    <div class="card-value" id="c-total">—</div>
+    <div class="card-sub" id="c-qtd">0 plotagens</div>
+  </div>
+  <div class="card green">
+    <div class="card-icon">✅</div>
+    <div class="card-label">Pago</div>
+    <div class="card-value" id="c-pago">—</div>
+    <div class="card-sub" id="c-qtd-pago">0 itens</div>
+  </div>
+  <div class="card amber">
+    <div class="card-icon">⏳</div>
+    <div class="card-label">Pendente</div>
+    <div class="card-value" id="c-pend">—</div>
+    <div class="card-sub" id="c-qtd-pend">0 itens</div>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="bar">
+  <label>Mês:</label>
+  <input type="month" id="filtro-mes" onchange="filtrar()">
+  <button class="btn-refresh" onclick="carregar()">↻ Atualizar</button>
+</div>
+
+<!-- TABLE AREA -->
+<div class="table-wrap">
+  <div id="area">
+    <div class="loading-box"><div class="spin"></div>Carregando...</div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="fecharSeFora(event)">
+  <div class="modal">
+    <div class="modal-title">📋 Nova Plotagem</div>
+    <div class="fg">
+      <label>Data</label>
+      <input type="date" id="f-data">
+    </div>
+    <div class="modal-row">
+      <div class="fg">
+        <label>Qtd. de Cópias</label>
+        <input type="number" id="f-qtd" min="1" placeholder="Ex: 5">
+      </div>
+      <div class="fg">
+        <label>Valor Total (R$)</label>
+        <input type="number" id="f-valor" step="0.01" min="0" placeholder="0,00">
+      </div>
+    </div>
+    <div class="fg">
+      <label>Status</label>
+      <select id="f-status">
+        <option value="pendente">⏳ Pendente</option>
+        <option value="pago">✅ Pago</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-save" id="btn-save" onclick="salvar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ⚠️ SUBSTITUA PELA SUA URL DO APPS SCRIPT APÓS PUBLICAR
+  const API = 'https://script.google.com/macros/s/AKfycbwtZYK8d874s6Y1VkbWloNt3vGWt3qw5TvuRzrFSd3HhmWc_TULaqabAEOAPY7Qac0j/exec';
+
+  let dados = [];
+
+  // ── INIT ──────────────────────────────────────────────────
+  (function init() {
+    const agora = new Date();
+    const mes = agora.toISOString().slice(0, 7);
+    document.getElementById('filtro-mes').value = mes;
+    document.getElementById('f-data').value = agora.toISOString().slice(0, 10);
+    atualizarLabelMes(mes);
+    carregar();
+  })();
+
+  function atualizarLabelMes(mes) {
+    const [a, m] = mes.split('-');
+    const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    document.getElementById('mes-label').textContent = nomes[+m - 1] + ' de ' + a;
+  }
+
+  // ── CARREGAR DADOS ────────────────────────────────────────
+  async function carregar() {
+    document.getElementById('area').innerHTML = '<div class="loading-box"><div class="spin"></div>Carregando...</div>';
+    try {
+      const r = await fetch(API);
+      dados = await r.json();
+      filtrar();
+    } catch(e) {
+      document.getElementById('area').innerHTML =
+        '<div class="error-box">❌ Não foi possível conectar à API.<br>Verifique se a URL do Apps Script está correta e se o projeto foi publicado corretamente.</div>';
+    }
+  }
+
+  // ── FILTRAR POR MÊS ───────────────────────────────────────
+  function filtrar() {
+    const mes = document.getElementById('filtro-mes').value;
+    atualizarLabelMes(mes);
+    const filtrado = dados.filter(r => r.data && String(r.data).startsWith(mes));
+    renderCards(filtrado);
+    renderTabela(filtrado);
+  }
+
+  // ── CARDS ─────────────────────────────────────────────────
+  function fmt(v) {
+    return 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+  }
+
+  function renderCards(d) {
+    const total  = d.reduce((s, r) => s + +r.valor, 0);
+    const pagos  = d.filter(r => r.status === 'pago');
+    const pends  = d.filter(r => r.status === 'pendente');
+    const tPago  = pagos.reduce((s, r) => s + +r.valor, 0);
+    const tPend  = pends.reduce((s, r) => s + +r.valor, 0);
+
+    document.getElementById('c-total').textContent  = fmt(total);
+    document.getElementById('c-qtd').textContent    = d.length + ' plotagem' + (d.length !== 1 ? 's' : '');
+    document.getElementById('c-pago').textContent   = fmt(tPago);
+    document.getElementById('c-qtd-pago').textContent = pagos.length + ' item' + (pagos.length !== 1 ? 's' : '');
+    document.getElementById('c-pend').textContent   = fmt(tPend);
+    document.getElementById('c-qtd-pend').textContent = pends.length + ' item' + (pends.length !== 1 ? 's' : '');
+  }
+
+  // ── TABELA ────────────────────────────────────────────────
+  function renderTabela(d) {
+    if (!d.length) {
+      document.getElementById('area').innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">🖨️</div>
+          <p>Nenhuma plotagem registrada neste mês.<br>Clique em <strong>+ Nova Plotagem</strong> para começar.</p>
+        </div>`;
+      return;
+    }
+
+    const linhas = [...d]
+      .sort((a, b) => String(b.data).localeCompare(String(a.data)))
+      .map(r => `
+        <tr>
+          <td>${fmtData(r.data)}</td>
+          <td style="text-align:center;font-weight:700">${r.quantidade}</td>
+          <td style="font-weight:700">${fmt(r.valor)}</td>
+          <td>
+            <button class="badge ${r.status}" onclick="alterarStatus('${r.id}','${r.status}')">
+              ${r.status === 'pago' ? '✅ Pago' : '⏳ Pendente'}
+            </button>
+          </td>
+          <td>
+            <button class="btn-del" onclick="excluir('${r.id}')" title="Excluir">✕</button>
+          </td>
+        </tr>`).join('');
+
+    document.getElementById('area').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th style="text-align:center">Cópias</th>
+            <th>Valor</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${linhas}</tbody>
+      </table>`;
+  }
+
+  function fmtData(d) {
+    if (!d) return '—';
+    const [a, m, dia] = String(d).split('-');
+    return `${dia}/${m}/${a}`;
+  }
+
+  // ── ALTERNAR STATUS ───────────────────────────────────────
+  async function alterarStatus(id, statusAtual) {
+    const novo = statusAtual === 'pago' ? 'pendente' : 'pago';
+    try {
+      await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'update', id, status: novo }) });
+      const rec = dados.find(r => r.id === id);
+      if (rec) rec.status = novo;
+      filtrar();
+      toast(novo === 'pago' ? '✅ Marcado como pago!' : '⏳ Marcado como pendente');
+    } catch(e) { toast('Erro ao atualizar status'); }
+  }
+
+  // ── EXCLUIR ───────────────────────────────────────────────
+  async function excluir(id) {
+    if (!confirm('Excluir esta plotagem?')) return;
+    try {
+      await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'delete', id }) });
+      dados = dados.filter(r => r.id !== id);
+      filtrar();
+      toast('🗑️ Plotagem excluída');
+    } catch(e) { toast('Erro ao excluir'); }
+  }
+
+  // ── MODAL ─────────────────────────────────────────────────
+  function abrirModal() { document.getElementById('overlay').classList.add('on'); }
+  function fecharModal() { document.getElementById('overlay').classList.remove('on'); }
+  function fecharSeFora(e) { if (e.target === document.getElementById('overlay')) fecharModal(); }
+
+  // ── SALVAR ────────────────────────────────────────────────
+  async function salvar() {
+    const data    = document.getElementById('f-data').value;
+    const qtd     = document.getElementById('f-qtd').value;
+    const valor   = document.getElementById('f-valor').value;
+    const status  = document.getElementById('f-status').value;
+
+    if (!data || !qtd || !valor) { toast('⚠️ Preencha todos os campos!'); return; }
+
+    const btn = document.getElementById('btn-save');
+    btn.disabled = true; btn.textContent = 'Salvando...';
+
+    try {
+      const res  = await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'add', data, quantidade: +qtd, valor: +valor, status })
+      });
+      const json = await res.json();
+
+      dados.push({ id: json.id, data, quantidade: qtd, valor, status });
+      filtrar();
+      fecharModal();
+      toast('✅ Plotagem salva com sucesso!');
+
+      // Limpa form
+      document.getElementById('f-qtd').value   = '';
+      document.getElementById('f-valor').value  = '';
+      document.getElementById('f-status').value = 'pendente';
+    } catch(e) {
+      toast('Erro ao salvar. Verifique a conexão.');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Salvar';
+    }
+  }
+
+  // ── TOAST ─────────────────────────────────────────────────
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>

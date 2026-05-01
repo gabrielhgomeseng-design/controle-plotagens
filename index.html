@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle de Plotagens</title>
+<title>Controlo de Plotagens</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;color:#1e293b;min-height:100vh}
@@ -88,16 +92,14 @@
 </head>
 <body>
 
-<!-- HEADER -->
 <div class="header">
   <div class="header-left">
-    <h1>🖨️ Controle de Plotagens</h1>
+    <h1>🖨️ Controlo de Plotagens</h1>
     <p id="mes-label">—</p>
   </div>
   <button class="btn-new" onclick="abrirModal()">+ Nova Plotagem</button>
 </div>
 
-<!-- CARDS -->
 <div class="cards">
   <div class="card">
     <div class="card-icon">📊</div>
@@ -119,21 +121,18 @@
   </div>
 </div>
 
-<!-- FILTER BAR -->
 <div class="bar">
   <label>Mês:</label>
   <input type="month" id="filtro-mes" onchange="filtrar()">
   <button class="btn-refresh" onclick="carregar()">↻ Atualizar</button>
 </div>
 
-<!-- TABLE AREA -->
 <div class="table-wrap">
   <div id="area">
-    <div class="loading-box"><div class="spin"></div>Carregando...</div>
+    <div class="loading-box"><div class="spin"></div>A carregar...</div>
   </div>
 </div>
 
-<!-- MODAL -->
 <div class="overlay" id="overlay" onclick="fecharSeFora(event)">
   <div class="modal">
     <div class="modal-title">📋 Nova Plotagem</div>
@@ -148,11 +147,11 @@
       </div>
       <div class="fg">
         <label>Valor Total (R$)</label>
-        <input type="number" id="f-valor" step="0.01" min="0" placeholder="0,00">
+        <input type="number" id="f-valor" step="0.01" min="0" placeholder="0.00">
       </div>
     </div>
     <div class="fg">
-      <label>Status</label>
+      <label>Estado</label>
       <select id="f-status">
         <option value="pendente">⏳ Pendente</option>
         <option value="pago">✅ Pago</option>
@@ -165,12 +164,24 @@
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-  // ⚠️ SUBSTITUA PELA SUA URL DO APPS SCRIPT APÓS PUBLICAR
-  const API = 'https://script.google.com/macros/s/AKfycbwtZYK8d874s6Y1VkbWloNt3vGWt3qw5TvuRzrFSd3HhmWc_TULaqabAEOAPY7Qac0j/exec';
+  // ── CONFIGURAÇÃO DO FIREBASE ──────────────────────────────
+  const firebaseConfig = {
+    apiKey: "AIzaSyAsO8n3y-d3pqjfc0S67nxit4Tr6TZ8PVA",
+    authDomain: "coordly-plotagens.firebaseapp.com",
+    projectId: "coordly-plotagens",
+    storageBucket: "coordly-plotagens.firebasestorage.app",
+    messagingSenderId: "763620105484",
+    appId: "1:763620105484:web:5b4821f227857e49233d29"
+  };
+
+  // Inicializar o Firebase
+  if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+  }
+  const db = firebase.firestore();
 
   let dados = [];
 
@@ -190,16 +201,20 @@
     document.getElementById('mes-label').textContent = nomes[+m - 1] + ' de ' + a;
   }
 
-  // ── CARREGAR DADOS ────────────────────────────────────────
+  // ── CARREGAR DADOS DO FIREBASE ────────────────────────────
   async function carregar() {
-    document.getElementById('area').innerHTML = '<div class="loading-box"><div class="spin"></div>Carregando...</div>';
+    document.getElementById('area').innerHTML = '<div class="loading-box"><div class="spin"></div>A carregar...</div>';
     try {
-      const r = await fetch(API);
-      dados = await r.json();
+      const snapshot = await db.collection('plotagens').get();
+      dados = [];
+      snapshot.forEach(doc => {
+        dados.push({ id: doc.id, ...doc.data() });
+      });
       filtrar();
     } catch(e) {
-      document.getElementById('area').innerHTML =
-        '<div class="error-box">❌ Não foi possível conectar à API.<br>Verifique se a URL do Apps Script está correta e se o projeto foi publicado corretamente.</div>';
+      console.error(e);
+      document.getElementById('area').innerHTML = 
+        '<div class="error-box">❌ Não foi possível conectar ao Firebase.<br>Verifique se tem internet ou se as regras estão corretas.</div>';
     }
   }
 
@@ -238,7 +253,7 @@
       document.getElementById('area').innerHTML = `
         <div class="empty">
           <div class="empty-icon">🖨️</div>
-          <p>Nenhuma plotagem registrada neste mês.<br>Clique em <strong>+ Nova Plotagem</strong> para começar.</p>
+          <p>Nenhuma plotagem registada neste mês.<br>Clique em <strong>+ Nova Plotagem</strong> para começar.</p>
         </div>`;
       return;
     }
@@ -267,7 +282,7 @@
             <th>Data</th>
             <th style="text-align:center">Cópias</th>
             <th>Valor</th>
-            <th>Status</th>
+            <th>Estado</th>
             <th></th>
           </tr>
         </thead>
@@ -281,27 +296,33 @@
     return `${dia}/${m}/${a}`;
   }
 
-  // ── ALTERNAR STATUS ───────────────────────────────────────
+  // ── ALTERNAR STATUS NO FIREBASE ───────────────────────────
   async function alterarStatus(id, statusAtual) {
     const novo = statusAtual === 'pago' ? 'pendente' : 'pago';
     try {
-      await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'update', id, status: novo }) });
+      await db.collection('plotagens').doc(id).update({ status: novo });
       const rec = dados.find(r => r.id === id);
       if (rec) rec.status = novo;
       filtrar();
       toast(novo === 'pago' ? '✅ Marcado como pago!' : '⏳ Marcado como pendente');
-    } catch(e) { toast('Erro ao atualizar status'); }
+    } catch(e) { 
+      toast('Erro ao atualizar estado'); 
+      console.error(e);
+    }
   }
 
-  // ── EXCLUIR ───────────────────────────────────────────────
+  // ── EXCLUIR NO FIREBASE ───────────────────────────────────
   async function excluir(id) {
-    if (!confirm('Excluir esta plotagem?')) return;
+    if (!confirm('Eliminar esta plotagem?')) return;
     try {
-      await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'delete', id }) });
+      await db.collection('plotagens').doc(id).delete();
       dados = dados.filter(r => r.id !== id);
       filtrar();
-      toast('🗑️ Plotagem excluída');
-    } catch(e) { toast('Erro ao excluir'); }
+      toast('🗑️ Plotagem eliminada');
+    } catch(e) { 
+      toast('Erro ao eliminar'); 
+      console.error(e);
+    }
   }
 
   // ── MODAL ─────────────────────────────────────────────────
@@ -309,36 +330,40 @@
   function fecharModal() { document.getElementById('overlay').classList.remove('on'); }
   function fecharSeFora(e) { if (e.target === document.getElementById('overlay')) fecharModal(); }
 
-  // ── SALVAR ────────────────────────────────────────────────
+  // ── SALVAR NO FIREBASE ────────────────────────────────────
   async function salvar() {
-    const data    = document.getElementById('f-data').value;
-    const qtd     = document.getElementById('f-qtd').value;
-    const valor   = document.getElementById('f-valor').value;
-    const status  = document.getElementById('f-status').value;
+    const data   = document.getElementById('f-data').value;
+    const qtd    = document.getElementById('f-qtd').value;
+    const valor  = document.getElementById('f-valor').value;
+    const status = document.getElementById('f-status').value;
 
     if (!data || !qtd || !valor) { toast('⚠️ Preencha todos os campos!'); return; }
 
     const btn = document.getElementById('btn-save');
-    btn.disabled = true; btn.textContent = 'Salvando...';
+    btn.disabled = true; btn.textContent = 'A guardar...';
+
+    const novoRegisto = {
+      data: data,
+      quantidade: Number(qtd),
+      valor: Number(valor),
+      status: status,
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    };
 
     try {
-      const res  = await fetch(API, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'add', data, quantidade: +qtd, valor: +valor, status })
-      });
-      const json = await res.json();
-
-      dados.push({ id: json.id, data, quantidade: qtd, valor, status });
+      const docRef = await db.collection('plotagens').add(novoRegisto);
+      
+      dados.push({ id: docRef.id, ...novoRegisto });
       filtrar();
       fecharModal();
-      toast('✅ Plotagem salva com sucesso!');
+      toast('✅ Plotagem guardada com sucesso!');
 
-      // Limpa form
       document.getElementById('f-qtd').value   = '';
       document.getElementById('f-valor').value  = '';
       document.getElementById('f-status').value = 'pendente';
     } catch(e) {
-      toast('Erro ao salvar. Verifique a conexão.');
+      toast('Erro ao guardar. Verifique a consola.');
+      console.error(e);
     } finally {
       btn.disabled = false; btn.textContent = 'Salvar';
     }

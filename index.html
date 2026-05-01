@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controlo de Plotagens</title>
+<title>Controle de Plotagens</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
@@ -12,14 +12,12 @@
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;color:#1e293b;min-height:100vh}
 
-  /* HEADER */
   .header{background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 3px 12px rgba(37,99,235,.35)}
   .header-left h1{font-size:17px;font-weight:700;letter-spacing:-.3px}
   .header-left p{font-size:11px;opacity:.75;margin-top:2px}
   .btn-new{background:#fff;color:#2563eb;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap}
   .btn-new:hover{background:#eff6ff;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
 
-  /* CARDS */
   .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 20px 0}
   .card{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-top:3px solid #2563eb;transition:transform .2s}
   .card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.1)}
@@ -30,21 +28,33 @@
   .card-value{font-size:22px;font-weight:800;color:#0f172a;margin-top:4px;line-height:1}
   .card-sub{font-size:11px;color:#94a3b8;margin-top:4px}
 
-  /* FILTER BAR */
   .bar{padding:14px 20px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .bar label{font-size:12px;font-weight:700;color:#475569}
   .bar input[type=month]{padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#1e293b;background:#fff;cursor:pointer;outline:none}
   .bar input[type=month]:focus{border-color:#2563eb}
-  .btn-refresh{background:#eff6ff;color:#2563eb;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:background .2s}
+  .btn-refresh{background:#eff6ff;color:#2563eb;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
   .btn-refresh:hover{background:#dbeafe}
 
-  /* TABLE */
+  /* BARRA DE AÇÕES EM LOTE */
+  .bulk-bar{display:none;margin:0 20px 10px;background:#1e3a8a;color:#fff;border-radius:10px;padding:10px 16px;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .bulk-bar.on{display:flex}
+  .bulk-info{font-size:13px;font-weight:700}
+  .bulk-actions{display:flex;gap:8px}
+  .btn-bulk{padding:7px 14px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s}
+  .btn-bulk.pagar{background:#16a34a;color:#fff}
+  .btn-bulk.pagar:hover{background:#15803d}
+  .btn-bulk.pendente{background:#d97706;color:#fff}
+  .btn-bulk.pendente:hover{background:#b45309}
+  .btn-bulk.cancelar{background:rgba(255,255,255,.15);color:#fff}
+  .btn-bulk.cancelar:hover{background:rgba(255,255,255,.25)}
+
   .table-wrap{padding:0 20px 20px;overflow-x:auto}
   table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}
   th{background:#f8fafc;padding:11px 14px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#64748b;border-bottom:1px solid #e2e8f0}
   td{padding:11px 14px;font-size:13px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
   tr:last-child td{border-bottom:none}
   tr:hover td{background:#f8fafc}
+  tr.selected td{background:#eff6ff}
 
   .badge{display:inline-flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all .2s;white-space:nowrap}
   .badge.pago{background:#dcfce7;color:#16a34a}
@@ -55,38 +65,36 @@
   .btn-del{background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:14px;padding:5px 7px;border-radius:6px;transition:all .2s;line-height:1}
   .btn-del:hover{color:#ef4444;background:#fef2f2}
 
+  input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#2563eb}
+
   .empty{text-align:center;padding:48px 20px;color:#94a3b8}
   .empty-icon{font-size:44px;margin-bottom:10px}
   .empty p{font-size:14px;line-height:1.6}
 
-  /* MODAL */
   .overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
   .overlay.on{display:flex}
   .modal{background:#fff;border-radius:18px;padding:24px;width:340px;max-width:95vw;box-shadow:0 24px 60px rgba(0,0,0,.22);animation:up .22s ease}
   @keyframes up{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
-  .modal-title{font-size:16px;font-weight:800;margin-bottom:18px;color:#0f172a;display:flex;align-items:center;gap:8px}
+  .modal-title{font-size:16px;font-weight:800;margin-bottom:18px;color:#0f172a}
   .fg{margin-bottom:13px}
   .fg label{display:block;font-size:11px;font-weight:700;color:#475569;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
   .fg input,.fg select{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;color:#1e293b;background:#f8fafc;transition:border .2s;outline:none}
   .fg input:focus,.fg select:focus{border-color:#2563eb;background:#fff}
   .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .modal-actions{display:flex;gap:8px;margin-top:18px}
-  .btn-cancel{flex:1;padding:10px;border:1.5px solid #e2e8f0;background:#fff;border-radius:9px;cursor:pointer;font-size:13px;color:#64748b;font-weight:700;transition:background .2s}
+  .btn-cancel{flex:1;padding:10px;border:1.5px solid #e2e8f0;background:#fff;border-radius:9px;cursor:pointer;font-size:13px;color:#64748b;font-weight:700}
   .btn-cancel:hover{background:#f8fafc}
   .btn-save{flex:2;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:14px;font-weight:800;transition:background .2s}
   .btn-save:hover{background:#1d4ed8}
   .btn-save:disabled{background:#93c5fd;cursor:not-allowed}
 
-  /* TOAST */
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(70px);background:#0f172a;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;transition:transform .28s cubic-bezier(.34,1.56,.64,1);z-index:200;white-space:nowrap}
   .toast.show{transform:translateX(-50%) translateY(0)}
 
-  /* SPINNER */
   .loading-box{text-align:center;padding:48px;color:#94a3b8;font-size:13px}
   .spin{width:26px;height:26px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:rot .7s linear infinite;margin:0 auto 12px}
   @keyframes rot{to{transform:rotate(360deg)}}
 
-  /* ERROR */
   .error-box{margin:0 20px 20px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;font-size:13px;color:#dc2626}
 </style>
 </head>
@@ -94,7 +102,7 @@
 
 <div class="header">
   <div class="header-left">
-    <h1>🖨️ Controlo de Plotagens</h1>
+    <h1>🖨️ Controle de Plotagens</h1>
     <p id="mes-label">—</p>
   </div>
   <button class="btn-new" onclick="abrirModal()">+ Nova Plotagem</button>
@@ -127,9 +135,19 @@
   <button class="btn-refresh" onclick="carregar()">↻ Atualizar</button>
 </div>
 
+<!-- BARRA DE AÇÕES EM LOTE -->
+<div class="bulk-bar" id="bulk-bar">
+  <span class="bulk-info" id="bulk-info">0 notas selecionadas</span>
+  <div class="bulk-actions">
+    <button class="btn-bulk pagar" onclick="marcarLote('pago')">✅ Marcar como Pago</button>
+    <button class="btn-bulk pendente" onclick="marcarLote('pendente')">⏳ Marcar como Pendente</button>
+    <button class="btn-bulk cancelar" onclick="limparSelecao()">✕ Cancelar</button>
+  </div>
+</div>
+
 <div class="table-wrap">
   <div id="area">
-    <div class="loading-box"><div class="spin"></div>A carregar...</div>
+    <div class="loading-box"><div class="spin"></div>Carregando...</div>
   </div>
 </div>
 
@@ -142,16 +160,16 @@
     </div>
     <div class="modal-row">
       <div class="fg">
-        <label>Qtd. de Cópias</label>
-        <input type="number" id="f-qtd" min="1" placeholder="Ex: 5">
+        <label>Número da Nota</label>
+        <input type="text" id="f-nota" placeholder="Ex: 001">
       </div>
       <div class="fg">
         <label>Valor Total (R$)</label>
-        <input type="number" id="f-valor" step="0.01" min="0" placeholder="0.00">
+        <input type="number" id="f-valor" step="0.01" min="0" placeholder="0,00">
       </div>
     </div>
     <div class="fg">
-      <label>Estado</label>
+      <label>Status</label>
       <select id="f-status">
         <option value="pendente">⏳ Pendente</option>
         <option value="pago">✅ Pago</option>
@@ -167,7 +185,6 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  // ── CONFIGURAÇÃO DO FIREBASE ──────────────────────────────
   const firebaseConfig = {
     apiKey: "AIzaSyAsO8n3y-d3pqjfc0S67nxit4Tr6TZ8PVA",
     authDomain: "coordly-plotagens.firebaseapp.com",
@@ -177,15 +194,12 @@
     appId: "1:763620105484:web:5b4821f227857e49233d29"
   };
 
-  // Inicializar o Firebase
-  if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-  }
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
   let dados = [];
+  let selecionados = new Set();
 
-  // ── INIT ──────────────────────────────────────────────────
   (function init() {
     const agora = new Date();
     const mes = agora.toISOString().slice(0, 7);
@@ -201,24 +215,21 @@
     document.getElementById('mes-label').textContent = nomes[+m - 1] + ' de ' + a;
   }
 
-  // ── CARREGAR DADOS DO FIREBASE ────────────────────────────
   async function carregar() {
-    document.getElementById('area').innerHTML = '<div class="loading-box"><div class="spin"></div>A carregar...</div>';
+    document.getElementById('area').innerHTML = '<div class="loading-box"><div class="spin"></div>Carregando...</div>';
+    selecionados.clear();
+    atualizarBulkBar();
     try {
       const snapshot = await db.collection('plotagens').get();
       dados = [];
-      snapshot.forEach(doc => {
-        dados.push({ id: doc.id, ...doc.data() });
-      });
+      snapshot.forEach(doc => dados.push({ id: doc.id, ...doc.data() }));
       filtrar();
     } catch(e) {
-      console.error(e);
-      document.getElementById('area').innerHTML = 
+      document.getElementById('area').innerHTML =
         '<div class="error-box">❌ Não foi possível conectar ao Firebase.<br>Verifique se tem internet ou se as regras estão corretas.</div>';
     }
   }
 
-  // ── FILTRAR POR MÊS ───────────────────────────────────────
   function filtrar() {
     const mes = document.getElementById('filtro-mes').value;
     atualizarLabelMes(mes);
@@ -227,62 +238,53 @@
     renderTabela(filtrado);
   }
 
-  // ── CARDS ─────────────────────────────────────────────────
   function fmt(v) {
     return 'R$ ' + Number(v).toFixed(2).replace('.', ',');
   }
 
   function renderCards(d) {
-    const total  = d.reduce((s, r) => s + +r.valor, 0);
-    const pagos  = d.filter(r => r.status === 'pago');
-    const pends  = d.filter(r => r.status === 'pendente');
-    const tPago  = pagos.reduce((s, r) => s + +r.valor, 0);
-    const tPend  = pends.reduce((s, r) => s + +r.valor, 0);
-
-    document.getElementById('c-total').textContent  = fmt(total);
-    document.getElementById('c-qtd').textContent    = d.length + ' plotagem' + (d.length !== 1 ? 's' : '');
-    document.getElementById('c-pago').textContent   = fmt(tPago);
+    const total = d.reduce((s, r) => s + +r.valor, 0);
+    const pagos = d.filter(r => r.status === 'pago');
+    const pends = d.filter(r => r.status === 'pendente');
+    document.getElementById('c-total').textContent = fmt(total);
+    document.getElementById('c-qtd').textContent = d.length + ' plotagem' + (d.length !== 1 ? 's' : '');
+    document.getElementById('c-pago').textContent = fmt(pagos.reduce((s,r)=>s+ +r.valor,0));
     document.getElementById('c-qtd-pago').textContent = pagos.length + ' item' + (pagos.length !== 1 ? 's' : '');
-    document.getElementById('c-pend').textContent   = fmt(tPend);
+    document.getElementById('c-pend').textContent = fmt(pends.reduce((s,r)=>s+ +r.valor,0));
     document.getElementById('c-qtd-pend').textContent = pends.length + ' item' + (pends.length !== 1 ? 's' : '');
   }
 
-  // ── TABELA ────────────────────────────────────────────────
   function renderTabela(d) {
     if (!d.length) {
       document.getElementById('area').innerHTML = `
         <div class="empty">
           <div class="empty-icon">🖨️</div>
-          <p>Nenhuma plotagem registada neste mês.<br>Clique em <strong>+ Nova Plotagem</strong> para começar.</p>
+          <p>Nenhuma plotagem registrada neste mês.<br>Clique em <strong>+ Nova Plotagem</strong> para começar.</p>
         </div>`;
       return;
     }
 
     const linhas = [...d]
-      .sort((a, b) => String(b.data).localeCompare(String(a.data)))
+      .sort((a,b) => String(b.data).localeCompare(String(a.data)))
       .map(r => `
-        <tr>
+        <tr id="row-${r.id}" class="${selecionados.has(r.id) ? 'selected' : ''}">
+          <td><input type="checkbox" ${selecionados.has(r.id) ? 'checked' : ''} onchange="toggleSelecao('${r.id}', this)"></td>
           <td>${fmtData(r.data)}</td>
-          <td style="text-align:center;font-weight:700">${r.quantidade}</td>
+          <td style="font-weight:700">${r.nota || '—'}</td>
           <td style="font-weight:700">${fmt(r.valor)}</td>
-          <td>
-            <button class="badge ${r.status}" onclick="alterarStatus('${r.id}','${r.status}')">
-              ${r.status === 'pago' ? '✅ Pago' : '⏳ Pendente'}
-            </button>
-          </td>
-          <td>
-            <button class="btn-del" onclick="excluir('${r.id}')" title="Excluir">✕</button>
-          </td>
+          <td><button class="badge ${r.status}" onclick="alterarStatus('${r.id}','${r.status}')">${r.status === 'pago' ? '✅ Pago' : '⏳ Pendente'}</button></td>
+          <td><button class="btn-del" onclick="excluir('${r.id}')" title="Excluir">✕</button></td>
         </tr>`).join('');
 
     document.getElementById('area').innerHTML = `
       <table>
         <thead>
           <tr>
+            <th><input type="checkbox" id="chk-all" onchange="toggleTodos(this)" title="Selecionar todos"></th>
             <th>Data</th>
-            <th style="text-align:center">Cópias</th>
+            <th>Nº da Nota</th>
             <th>Valor</th>
-            <th>Estado</th>
+            <th>Status</th>
             <th></th>
           </tr>
         </thead>
@@ -292,11 +294,83 @@
 
   function fmtData(d) {
     if (!d) return '—';
-    const [a, m, dia] = String(d).split('-');
+    const [a,m,dia] = String(d).split('-');
     return `${dia}/${m}/${a}`;
   }
 
-  // ── ALTERNAR STATUS NO FIREBASE ───────────────────────────
+  // ── SELEÇÃO ───────────────────────────────────────────────
+  function toggleSelecao(id, chk) {
+    if (chk.checked) selecionados.add(id);
+    else selecionados.delete(id);
+    const row = document.getElementById('row-' + id);
+    if (row) row.classList.toggle('selected', chk.checked);
+    atualizarBulkBar();
+  }
+
+  function toggleTodos(chk) {
+    const mes = document.getElementById('filtro-mes').value;
+    const filtrado = dados.filter(r => r.data && String(r.data).startsWith(mes));
+    filtrado.forEach(r => {
+      if (chk.checked) selecionados.add(r.id);
+      else selecionados.delete(r.id);
+      const row = document.getElementById('row-' + r.id);
+      if (row) {
+        row.classList.toggle('selected', chk.checked);
+        const cb = row.querySelector('input[type=checkbox]');
+        if (cb) cb.checked = chk.checked;
+      }
+    });
+    atualizarBulkBar();
+  }
+
+  function limparSelecao() {
+    selecionados.clear();
+    filtrar();
+    atualizarBulkBar();
+  }
+
+  function atualizarBulkBar() {
+    const bar = document.getElementById('bulk-bar');
+    const info = document.getElementById('bulk-info');
+    const n = selecionados.size;
+    if (n > 0) {
+      bar.classList.add('on');
+      info.textContent = n + ' nota' + (n !== 1 ? 's' : '') + ' selecionada' + (n !== 1 ? 's' : '');
+    } else {
+      bar.classList.remove('on');
+    }
+  }
+
+  // ── AÇÃO EM LOTE ──────────────────────────────────────────
+  async function marcarLote(novoStatus) {
+    if (!selecionados.size) return;
+    const ids = [...selecionados];
+    const label = novoStatus === 'pago' ? 'pagas' : 'pendentes';
+
+    try {
+      const batch = db.batch();
+      ids.forEach(id => {
+        const ref = db.collection('plotagens').doc(id);
+        batch.update(ref, { status: novoStatus });
+      });
+      await batch.commit();
+
+      ids.forEach(id => {
+        const rec = dados.find(r => r.id === id);
+        if (rec) rec.status = novoStatus;
+      });
+
+      selecionados.clear();
+      filtrar();
+      atualizarBulkBar();
+      toast(`✅ ${ids.length} nota${ids.length !== 1 ? 's' : ''} marcada${ids.length !== 1 ? 's' : ''} como ${label}!`);
+    } catch(e) {
+      toast('Erro ao atualizar em lote');
+      console.error(e);
+    }
+  }
+
+  // ── STATUS INDIVIDUAL ─────────────────────────────────────
   async function alterarStatus(id, statusAtual) {
     const novo = statusAtual === 'pago' ? 'pendente' : 'pago';
     try {
@@ -305,24 +379,20 @@
       if (rec) rec.status = novo;
       filtrar();
       toast(novo === 'pago' ? '✅ Marcado como pago!' : '⏳ Marcado como pendente');
-    } catch(e) { 
-      toast('Erro ao atualizar estado'); 
-      console.error(e);
-    }
+    } catch(e) { toast('Erro ao atualizar status'); }
   }
 
-  // ── EXCLUIR NO FIREBASE ───────────────────────────────────
+  // ── EXCLUIR ───────────────────────────────────────────────
   async function excluir(id) {
-    if (!confirm('Eliminar esta plotagem?')) return;
+    if (!confirm('Excluir esta plotagem?')) return;
     try {
       await db.collection('plotagens').doc(id).delete();
       dados = dados.filter(r => r.id !== id);
+      selecionados.delete(id);
       filtrar();
-      toast('🗑️ Plotagem eliminada');
-    } catch(e) { 
-      toast('Erro ao eliminar'); 
-      console.error(e);
-    }
+      atualizarBulkBar();
+      toast('🗑️ Plotagem excluída');
+    } catch(e) { toast('Erro ao excluir'); }
   }
 
   // ── MODAL ─────────────────────────────────────────────────
@@ -330,40 +400,32 @@
   function fecharModal() { document.getElementById('overlay').classList.remove('on'); }
   function fecharSeFora(e) { if (e.target === document.getElementById('overlay')) fecharModal(); }
 
-  // ── SALVAR NO FIREBASE ────────────────────────────────────
+  // ── SALVAR ────────────────────────────────────────────────
   async function salvar() {
     const data   = document.getElementById('f-data').value;
-    const qtd    = document.getElementById('f-qtd').value;
+    const nota   = document.getElementById('f-nota').value;
     const valor  = document.getElementById('f-valor').value;
     const status = document.getElementById('f-status').value;
 
-    if (!data || !qtd || !valor) { toast('⚠️ Preencha todos os campos!'); return; }
+    if (!data || !nota || !valor) { toast('⚠️ Preencha todos os campos!'); return; }
 
     const btn = document.getElementById('btn-save');
-    btn.disabled = true; btn.textContent = 'A guardar...';
-
-    const novoRegisto = {
-      data: data,
-      quantidade: Number(qtd),
-      valor: Number(valor),
-      status: status,
-      criadoEm: firebase.firestore.FieldValue.serverTimestamp()
-    };
+    btn.disabled = true; btn.textContent = 'Salvando...';
 
     try {
-      const docRef = await db.collection('plotagens').add(novoRegisto);
-      
-      dados.push({ id: docRef.id, ...novoRegisto });
+      const docRef = await db.collection('plotagens').add({
+        data, nota, valor: Number(valor), status,
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      dados.push({ id: docRef.id, data, nota, valor, status });
       filtrar();
       fecharModal();
-      toast('✅ Plotagem guardada com sucesso!');
-
-      document.getElementById('f-qtd').value   = '';
-      document.getElementById('f-valor').value  = '';
+      toast('✅ Plotagem salva com sucesso!');
+      document.getElementById('f-nota').value  = '';
+      document.getElementById('f-valor').value = '';
       document.getElementById('f-status').value = 'pendente';
     } catch(e) {
-      toast('Erro ao guardar. Verifique a consola.');
-      console.error(e);
+      toast('Erro ao salvar.');
     } finally {
       btn.disabled = false; btn.textContent = 'Salvar';
     }

@@ -3,90 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle de Plotagens</title>
+<title>Controle de Plotagens Pro (Local)</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;color:#1e293b;min-height:100vh}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;color:#1e293b;min-height:100vh;padding-bottom: 40px;}
 
-  .header{background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 3px 12px rgba(37,99,235,.35)}
-  .header-left h1{font-size:17px;font-weight:700;letter-spacing:-.3px}
-  .header-left p{font-size:11px;opacity:.75;margin-top:2px}
-  .btn-new{background:#fff;color:#2563eb;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap}
-  .btn-new:hover{background:#eff6ff;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+  .header{background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 12px rgba(30,58,138,0.25);position: sticky;top: 0;z-index: 50;}
+  .header-left h1{font-size:18px;font-weight:700;letter-spacing:-.3px}
+  .header-left p{font-size:12px;opacity:.85;margin-top:2px}
+  
+  .btn-new{background:#fff;color:#2563eb;border:none;padding:10px 18px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+  .btn-new:hover{background:#f8fafc;transform:scale(1.02);box-shadow:0 4px 12px rgba(0,0,0,0.1)}
 
-  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 20px 0}
-  .card{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-top:3px solid #2563eb;transition:transform .2s}
-  .card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.1)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit, minmax(100px, 1fr));gap:12px;padding:20px 20px 0}
+  .card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,0.04);border-top:4px solid #2563eb;transition:all .2s}
   .card.green{border-top-color:#16a34a}
   .card.amber{border-top-color:#d97706}
-  .card-icon{font-size:20px;margin-bottom:6px}
-  .card-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#64748b;font-weight:700}
-  .card-value{font-size:22px;font-weight:800;color:#0f172a;margin-top:4px;line-height:1}
-  .card-sub{font-size:11px;color:#94a3b8;margin-top:4px}
+  .card-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#64748b;font-weight:700;margin-bottom:6px;display:block}
+  .card-value{font-size:20px;font-weight:800;color:#0f172a}
+  .card-sub{font-size:11px;color:#94a3b8;margin-top:6px;display:block}
 
-  .bar{padding:14px 20px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .bar label{font-size:12px;font-weight:700;color:#475569}
-  .bar input[type=month]{padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#1e293b;background:#fff;cursor:pointer;outline:none}
-  .bar input[type=month]:focus{border-color:#2563eb}
-  .btn-refresh{background:#eff6ff;color:#2563eb;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
-  .btn-refresh:hover{background:#dbeafe}
-  .btn-export{background:#f0fdf4;color:#16a34a;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
-  .btn-export:hover{background:#dcfce7}
+  .bar{padding:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .bar label{font-size:13px;font-weight:700;color:#475569}
+  .bar input[type=month]{padding:8px 12px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;outline:none;background:#fff}
+  
+  .btn-pdf{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:0.2s}
+  .btn-pdf:hover{background:#fecaca}
 
-  .bulk-bar{display:none;margin:0 20px 10px;background:#1e3a8a;color:#fff;border-radius:10px;padding:10px 16px;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .bulk-bar{display:none;margin:0 20px 15px;background:#1e293b;color:#fff;border-radius:12px;padding:12px 20px;align-items:center;justify-content:space-between;animation: slideIn 0.3s ease}
+  @keyframes slideIn { from { opacity:0; transform: translateY(-10px); } to { opacity:1; transform: translateY(0); } }
   .bulk-bar.on{display:flex}
-  .bulk-info{font-size:13px;font-weight:700}
-  .bulk-actions{display:flex;gap:8px}
-  .btn-bulk{padding:7px 14px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s}
+  .btn-bulk{padding:8px 14px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-left:5px}
   .btn-bulk.pagar{background:#16a34a;color:#fff}
-  .btn-bulk.pagar:hover{background:#15803d}
-  .btn-bulk.pendente{background:#d97706;color:#fff}
-  .btn-bulk.pendente:hover{background:#b45309}
-  .btn-bulk.cancelar{background:rgba(255,255,255,.15);color:#fff}
-  .btn-bulk.cancelar:hover{background:rgba(255,255,255,.25)}
+  .btn-bulk.cancelar{background:transparent;color:#cbd5e1;border:1px solid #475569}
 
-  .table-wrap{padding:0 20px 20px;overflow-x:auto}
-  table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-  th{background:#f8fafc;padding:11px 14px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#64748b;border-bottom:1px solid #e2e8f0}
-  td{padding:11px 14px;font-size:13px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
-  tr:last-child td{border-bottom:none}
+  .table-wrap{padding:0 20px;overflow-x:auto}
+  table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1)}
+  th{background:#f8fafc;padding:14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;border-bottom:1px solid #e2e8f0}
+  td{padding:14px;font-size:14px;border-bottom:1px solid #f1f5f9;cursor:pointer}
   tr:hover td{background:#f8fafc}
   tr.selected td{background:#eff6ff}
-
-  .badge{display:inline-flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all .2s;white-space:nowrap}
+  
+  .badge{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;display:inline-block}
   .badge.pago{background:#dcfce7;color:#16a34a}
-  .badge.pago:hover{background:#bbf7d0}
   .badge.pendente{background:#fef3c7;color:#d97706}
-  .badge.pendente:hover{background:#fde68a}
 
-  .btn-del{background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:14px;padding:5px 7px;border-radius:6px;transition:all .2s;line-height:1}
-  .btn-del:hover{color:#ef4444;background:#fef2f2}
-
-  input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#2563eb}
-
-  .empty{text-align:center;padding:48px 20px;color:#94a3b8}
-  .empty-icon{font-size:44px;margin-bottom:10px}
-  .empty p{font-size:14px;line-height:1.6}
-
-  .overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.7);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
   .overlay.on{display:flex}
-  .modal{background:#fff;border-radius:18px;padding:24px;width:340px;max-width:95vw;box-shadow:0 24px 60px rgba(0,0,0,.22);animation:up .22s ease}
-  @keyframes up{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
-  .modal-title{font-size:16px;font-weight:800;margin-bottom:18px;color:#0f172a}
-  .fg{margin-bottom:13px}
-  .fg label{display:block;font-size:11px;font-weight:700;color:#475569;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
-  .fg input,.fg select{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;color:#1e293b;background:#f8fafc;transition:border .2s;outline:none}
-  .fg input:focus,.fg select:focus{border-color:#2563eb;background:#fff}
-  .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .modal-actions{display:flex;gap:8px;margin-top:18px}
-  .btn-cancel{flex:1;padding:10px;border:1.5px solid #e2e8f0;background:#fff;border-radius:9px;cursor:pointer;font-size:13px;color:#64748b;font-weight:700}
-  .btn-cancel:hover{background:#f8fafc}
-  .btn-save{flex:2;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:14px;font-weight:800;transition:background .2s}
-  .btn-save:hover{background:#1d4ed8}
-  .btn-save:disabled{background:#93c5fd;cursor:not-allowed}
+  .modal{background:#fff;border-radius:20px;padding:28px;width:380px;max-width:95vw;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25)}
+  .fg{margin-bottom:16px}
+  .fg label{display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:6px}
+  .fg input, .fg select{width:100%;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:15px;outline:none}
+  
+  .modal-actions{display:flex;gap:10px;margin-top:20px}
+  .btn-save{flex:1;background:#2563eb;color:#fff;border:none;padding:12px;border-radius:10px;font-weight:700;cursor:pointer}
+  .btn-cancel{background:#f1f5f9;color:#64748b;border:none;padding:12px;border-radius:10px;font-weight:700;cursor:pointer}
 
-  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(70px);background:#0f172a;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;transition:transform .28s cubic-bezier(.34,1.56,.64,1);z-index:200;white-space:nowrap}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#1e293b;color:#fff;padding:12px 24px;border-radius:12px;transition:0.3s;z-index:200}
   .toast.show{transform:translateX(-50%) translateY(0)}
+
+  @media (max-width: 600px) {
+    .cards { grid-template-columns: 1fr; }
+    .header-left h1 { font-size: 16px; }
+  }
 </style>
 </head>
 <body>
@@ -94,45 +77,40 @@
 <div class="header">
   <div class="header-left">
     <h1>🖨️ Controle de Plotagens</h1>
-    <p id="mes-label">—</p>
+    <p id="mes-label">Janeiro de 2024</p>
   </div>
   <button class="btn-new" onclick="abrirModal()">+ Nova Plotagem</button>
 </div>
 
 <div class="cards">
   <div class="card">
-    <div class="card-icon">📊</div>
-    <div class="card-label">Total do Mês</div>
-    <div class="card-value" id="c-total">—</div>
-    <div class="card-sub" id="c-qtd">0 plotagens</div>
+    <span class="card-label">💰 Total Mensal</span>
+    <div class="card-value" id="c-total">R$ 0,00</div>
+    <span class="card-sub" id="c-qtd">0 plotagens</span>
   </div>
   <div class="card green">
-    <div class="card-icon">✅</div>
-    <div class="card-label">Pago</div>
-    <div class="card-value" id="c-pago">—</div>
-    <div class="card-sub" id="c-qtd-pago">0 itens</div>
+    <span class="card-label">✅ Confirmado</span>
+    <div class="card-value" id="c-pago">R$ 0,00</div>
+    <span class="card-sub" id="c-qtd-pago">0 pagas</span>
   </div>
   <div class="card amber">
-    <div class="card-icon">⏳</div>
-    <div class="card-label">Pendente</div>
-    <div class="card-value" id="c-pend">—</div>
-    <div class="card-sub" id="c-qtd-pend">0 itens</div>
+    <span class="card-label">⏳ Em Aberto</span>
+    <div class="card-value" id="c-pend">R$ 0,00</div>
+    <span class="card-sub" id="c-qtd-pend">0 pendentes</span>
   </div>
 </div>
 
 <div class="bar">
-  <label>Mês:</label>
+  <label>Filtrar Mês:</label>
   <input type="month" id="filtro-mes" onchange="filtrar()">
-  <button class="btn-refresh" onclick="filtrar()">↻ Atualizar</button>
-  <button class="btn-export" onclick="exportarCSV()">⬇️ Exportar CSV</button>
+  <button class="btn-pdf" onclick="gerarPDFPendentes()">📄 PDF Pendentes</button>
 </div>
 
 <div class="bulk-bar" id="bulk-bar">
-  <span class="bulk-info" id="bulk-info">0 notas selecionadas</span>
-  <div class="bulk-actions">
-    <button class="btn-bulk pagar" onclick="marcarLote('pago')">✅ Marcar como Pago</button>
-    <button class="btn-bulk pendente" onclick="marcarLote('pendente')">⏳ Marcar como Pendente</button>
-    <button class="btn-bulk cancelar" onclick="limparSelecao()">✕ Cancelar</button>
+  <span id="bulk-info">0 selecionados</span>
+  <div>
+    <button class="btn-bulk pagar" onclick="marcarLote('pago')">Marcar Pago</button>
+    <button class="btn-bulk cancelar" onclick="limparSelecao()">Cancelar</button>
   </div>
 </div>
 
@@ -142,19 +120,20 @@
 
 <div class="overlay" id="overlay" onclick="fecharSeFora(event)">
   <div class="modal">
-    <div class="modal-title">📋 Nova Plotagem</div>
+    <div class="modal-title"><h2 id="modal-titulo" style="margin-bottom:20px; font-size:18px">📋 Nova Plotagem</h2></div>
+    <input type="hidden" id="f-id">
     <div class="fg">
       <label>Data</label>
       <input type="date" id="f-data">
     </div>
-    <div class="modal-row">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
       <div class="fg">
-        <label>Número da Nota</label>
-        <input type="text" id="f-nota" placeholder="Ex: 001">
+        <label>Nº Nota</label>
+        <input type="text" id="f-nota">
       </div>
       <div class="fg">
-        <label>Valor Total (R$)</label>
-        <input type="number" id="f-valor" step="0.01" min="0" placeholder="0,00">
+        <label>Valor (R$)</label>
+        <input type="number" id="f-valor" step="0.01">
       </div>
     </div>
     <div class="fg">
@@ -165,261 +144,192 @@
       </select>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-cancel" onclick="fecharModal()">Voltar</button>
       <button class="btn-save" id="btn-save" onclick="salvar()">Salvar</button>
     </div>
+    <button id="btn-delete-modal" style="display:none; width:100%; margin-top:15px; background:none; border:none; color:#ef4444; font-size:12px; cursor:pointer; text-decoration:underline" onclick="excluirViaModal()">Excluir registro</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-  // ── STORAGE ───────────────────────────────────────────────
-  const CHAVE = 'plotagens_gvc';
-
-  function lerDados() {
-    try { return JSON.parse(localStorage.getItem(CHAVE) || '[]'); }
-    catch(e) { return []; }
-  }
-
-  function salvarDados(arr) {
-    localStorage.setItem(CHAVE, JSON.stringify(arr));
-  }
-
-  function gerarId() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  }
-
-  // ── STATE ─────────────────────────────────────────────────
-  let dados = [];
+  // --- LÓGICA DE DADOS (LOCALSTORAGE) ---
+  let dados = JSON.parse(localStorage.getItem('minhas_plotagens')) || [];
   let selecionados = new Set();
 
-  // ── INIT ──────────────────────────────────────────────────
   (function init() {
     const agora = new Date();
     const mes = agora.toISOString().slice(0, 7);
     document.getElementById('filtro-mes').value = mes;
-    document.getElementById('f-data').value = agora.toISOString().slice(0, 10);
-    dados = lerDados();
     filtrar();
   })();
 
-  function atualizarLabelMes(mes) {
-    const [a, m] = mes.split('-');
-    const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    document.getElementById('mes-label').textContent = nomes[+m - 1] + ' de ' + a;
+  function salvarNoStorage() {
+    localStorage.setItem('minhas_plotagens', JSON.stringify(dados));
+    filtrar();
   }
 
-  // ── FILTRAR / RENDER ──────────────────────────────────────
   function filtrar() {
     const mes = document.getElementById('filtro-mes').value;
     atualizarLabelMes(mes);
-    const filtrado = dados.filter(r => r.data && String(r.data).startsWith(mes));
+    const filtrado = dados.filter(r => String(r.data).startsWith(mes));
     renderCards(filtrado);
     renderTabela(filtrado);
   }
 
-  function fmt(v) {
-    return 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+  function atualizarLabelMes(mes) {
+    const [a, m] = mes.split('-');
+    const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    document.getElementById('mes-label').textContent = (nomes[+m - 1] || 'Mês') + ' de ' + a;
   }
 
-  function fmtData(d) {
-    if (!d) return '—';
-    const [a, m, dia] = String(d).split('-');
-    return `${dia}/${m}/${a}`;
-  }
+  function fmt(v) { return 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits: 2}); }
 
   function renderCards(d) {
     const total = d.reduce((s, r) => s + +r.valor, 0);
     const pagos = d.filter(r => r.status === 'pago');
     const pends = d.filter(r => r.status === 'pendente');
     document.getElementById('c-total').textContent = fmt(total);
-    document.getElementById('c-qtd').textContent = d.length + ' plotagem' + (d.length !== 1 ? 's' : '');
+    document.getElementById('c-qtd').textContent = `${d.length} plotagens`;
     document.getElementById('c-pago').textContent = fmt(pagos.reduce((s,r)=>s+ +r.valor,0));
-    document.getElementById('c-qtd-pago').textContent = pagos.length + ' item' + (pagos.length !== 1 ? 's' : '');
+    document.getElementById('c-qtd-pago').textContent = `${pagos.length} confirmadas`;
     document.getElementById('c-pend').textContent = fmt(pends.reduce((s,r)=>s+ +r.valor,0));
-    document.getElementById('c-qtd-pend').textContent = pends.length + ' item' + (pends.length !== 1 ? 's' : '');
+    document.getElementById('c-qtd-pend').textContent = `${pends.length} em aberto`;
   }
 
   function renderTabela(d) {
+    const area = document.getElementById('area');
     if (!d.length) {
-      document.getElementById('area').innerHTML = `
-        <div class="empty">
-          <div class="empty-icon">🖨️</div>
-          <p>Nenhuma plotagem registrada neste mês.<br>Clique em <strong>+ Nova Plotagem</strong> para começar.</p>
-        </div>`;
+      area.innerHTML = '<div style="text-align:center; padding:60px; color:#94a3b8">Nenhum registro encontrado.</div>';
       return;
     }
-
-    const linhas = [...d]
-      .sort((a,b) => String(b.data).localeCompare(String(a.data)))
-      .map(r => `
-        <tr id="row-${r.id}" class="${selecionados.has(r.id) ? 'selected' : ''}">
-          <td><input type="checkbox" ${selecionados.has(r.id) ? 'checked' : ''} onchange="toggleSelecao('${r.id}', this)"></td>
-          <td>${fmtData(r.data)}</td>
-          <td style="font-weight:700">${r.nota || '—'}</td>
-          <td style="font-weight:700">${fmt(r.valor)}</td>
-          <td><button class="badge ${r.status}" onclick="alterarStatus('${r.id}','${r.status}')">${r.status === 'pago' ? '✅ Pago' : '⏳ Pendente'}</button></td>
-          <td><button class="btn-del" onclick="excluir('${r.id}')" title="Excluir">✕</button></td>
-        </tr>`).join('');
-
-    document.getElementById('area').innerHTML = `
-      <table>
-        <thead>
-          <tr>
-            <th><input type="checkbox" id="chk-all" onchange="toggleTodos(this)" title="Selecionar todos"></th>
-            <th>Data</th>
-            <th>Nº da Nota</th>
-            <th>Valor</th>
-            <th>Status</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>${linhas}</tbody>
-      </table>`;
-  }
-
-  // ── SELEÇÃO ───────────────────────────────────────────────
-  function toggleSelecao(id, chk) {
-    if (chk.checked) selecionados.add(id);
-    else selecionados.delete(id);
-    const row = document.getElementById('row-' + id);
-    if (row) row.classList.toggle('selected', chk.checked);
-    atualizarBulkBar();
-  }
-
-  function toggleTodos(chk) {
-    const mes = document.getElementById('filtro-mes').value;
-    const filtrado = dados.filter(r => r.data && String(r.data).startsWith(mes));
-    filtrado.forEach(r => {
-      if (chk.checked) selecionados.add(r.id);
-      else selecionados.delete(r.id);
-      const row = document.getElementById('row-' + r.id);
-      if (row) {
-        row.classList.toggle('selected', chk.checked);
-        const cb = row.querySelector('input[type=checkbox]');
-        if (cb) cb.checked = chk.checked;
-      }
+    let html = `<table><thead><tr><th style="width:40px"><input type="checkbox" onchange="toggleTodos(this)"></th><th>Data</th><th>Nota</th><th>Valor</th><th>Status</th></tr></thead><tbody>`;
+    d.forEach(r => {
+      const dataFmt = r.data.split('-').reverse().join('/');
+      html += `<tr class="${selecionados.has(r.id) ? 'selected' : ''}">
+        <td onclick="event.stopPropagation()"><input type="checkbox" ${selecionados.has(r.id) ? 'checked' : ''} onchange="toggleSelecao('${r.id}', this)"></td>
+        <td onclick="prepararEdicao('${r.id}')">${dataFmt}</td>
+        <td onclick="prepararEdicao('${r.id}')" style="font-weight:600">#${r.nota}</td>
+        <td onclick="prepararEdicao('${r.id}')" style="font-weight:700">${fmt(r.valor)}</td>
+        <td onclick="prepararEdicao('${r.id}')"><span class="badge ${r.status}">${r.status.toUpperCase()}</span></td>
+      </tr>`;
     });
-    atualizarBulkBar();
+    area.innerHTML = html + '</tbody></table>';
   }
 
-  function limparSelecao() {
-    selecionados.clear();
-    filtrar();
-    atualizarBulkBar();
+  // --- PDF ---
+  async function gerarPDFPendentes() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const mesRef = document.getElementById('filtro-mes').value;
+    const pendentes = dados.filter(r => String(r.data).startsWith(mesRef) && r.status === 'pendente');
+
+    if (!pendentes.length) return toast("⚠️ Nenhuma pendência!");
+
+    doc.setFontSize(18);
+    doc.text("Relatorio de Plotagens Pendentes", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Referencia: ${mesRef}`, 14, 28);
+
+    const corpo = pendentes.map(r => [r.data.split('-').reverse().join('/'), `#${r.nota}`, fmt(r.valor)]);
+    const total = pendentes.reduce((s, r) => s + Number(r.valor), 0);
+
+    doc.autoTable({
+        startY: 35,
+        head: [['Data', 'Nota', 'Valor']],
+        body: corpo,
+        foot: [['', 'TOTAL PENDENTE', fmt(total)]],
+        theme: 'striped',
+        headStyles: { fillColor: [30, 58, 138] }
+    });
+
+    doc.save(`pendentes_${mesRef}.pdf`);
+    toast("✅ PDF gerado!");
   }
 
+  // --- CRUD ---
+  function salvar() {
+    const id = document.getElementById('f-id').value;
+    const obj = {
+      id: id || Date.now().toString(),
+      data: document.getElementById('f-data').value,
+      nota: document.getElementById('f-nota').value,
+      valor: Number(document.getElementById('f-valor').value),
+      status: document.getElementById('f-status').value
+    };
+
+    if (!obj.data || !obj.nota || !obj.valor) return toast("⚠️ Preencha tudo!");
+
+    if (id) {
+      const idx = dados.findIndex(x => x.id === id);
+      dados[idx] = obj;
+    } else {
+      dados.push(obj);
+    }
+
+    salvarNoStorage();
+    fecharModal();
+    toast("✅ Salvo localmente!");
+  }
+
+  function excluirViaModal() {
+    if (!confirm("Excluir?")) return;
+    const id = document.getElementById('f-id').value;
+    dados = dados.filter(x => x.id !== id);
+    salvarNoStorage();
+    fecharModal();
+    toast("🗑️ Excluído");
+  }
+
+  function marcarLote(status) {
+    dados = dados.map(r => selecionados.has(r.id) ? {...r, status} : r);
+    limparSelecao();
+    salvarNoStorage();
+    toast("✅ Atualizado!");
+  }
+
+  // --- UI ---
+  function abrirModal() {
+    document.getElementById('f-id').value = "";
+    document.getElementById('f-data').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('f-nota').value = "";
+    document.getElementById('f-valor').value = "";
+    document.getElementById('modal-titulo').textContent = "📋 Nova Plotagem";
+    document.getElementById('btn-delete-modal').style.display = "none";
+    document.getElementById('overlay').classList.add('on');
+  }
+
+  function prepararEdicao(id) {
+    const r = dados.find(x => x.id === id);
+    document.getElementById('f-id').value = r.id;
+    document.getElementById('f-data').value = r.data;
+    document.getElementById('f-nota').value = r.nota;
+    document.getElementById('f-valor').value = r.valor;
+    document.getElementById('f-status').value = r.status;
+    document.getElementById('modal-titulo').textContent = "✏️ Editar";
+    document.getElementById('btn-delete-modal').style.display = "block";
+    document.getElementById('overlay').classList.add('on');
+  }
+
+  function fecharModal() { document.getElementById('overlay').classList.remove('on'); }
+  function fecharSeFora(e) { if (e.target.id === 'overlay') fecharModal(); }
+  function toggleSelecao(id, chk) { if (chk.checked) selecionados.add(id); else selecionados.delete(id); atualizarBulkBar(); }
+  function toggleTodos(chk) { 
+    const mes = document.getElementById('filtro-mes').value;
+    dados.filter(r => r.data.startsWith(mes)).forEach(r => chk.checked ? selecionados.add(r.id) : selecionados.delete(r.id));
+    filtrar(); atualizarBulkBar(); 
+  }
   function atualizarBulkBar() {
     const bar = document.getElementById('bulk-bar');
-    const info = document.getElementById('bulk-info');
-    const n = selecionados.size;
-    if (n > 0) {
-      bar.classList.add('on');
-      info.textContent = n + ' nota' + (n !== 1 ? 's' : '') + ' selecionada' + (n !== 1 ? 's' : '');
-    } else {
-      bar.classList.remove('on');
-    }
+    bar.classList.toggle('on', selecionados.size > 0);
+    document.getElementById('bulk-info').textContent = `${selecionados.size} selecionados`;
   }
-
-  // ── AÇÃO EM LOTE ──────────────────────────────────────────
-  function marcarLote(novoStatus) {
-    if (!selecionados.size) return;
-    const ids = [...selecionados];
-    const label = novoStatus === 'pago' ? 'pagas' : 'pendentes';
-    ids.forEach(id => {
-      const rec = dados.find(r => r.id === id);
-      if (rec) rec.status = novoStatus;
-    });
-    salvarDados(dados);
-    selecionados.clear();
-    filtrar();
-    atualizarBulkBar();
-    toast(`✅ ${ids.length} nota${ids.length !== 1 ? 's' : ''} marcada${ids.length !== 1 ? 's' : ''} como ${label}!`);
-  }
-
-  // ── STATUS INDIVIDUAL ─────────────────────────────────────
-  function alterarStatus(id, statusAtual) {
-    const novo = statusAtual === 'pago' ? 'pendente' : 'pago';
-    const rec = dados.find(r => r.id === id);
-    if (rec) {
-      rec.status = novo;
-      salvarDados(dados);
-      filtrar();
-      toast(novo === 'pago' ? '✅ Marcado como pago!' : '⏳ Marcado como pendente');
-    }
-  }
-
-  // ── EXCLUIR ───────────────────────────────────────────────
-  function excluir(id) {
-    if (!confirm('Excluir esta plotagem?')) return;
-    dados = dados.filter(r => r.id !== id);
-    selecionados.delete(id);
-    salvarDados(dados);
-    filtrar();
-    atualizarBulkBar();
-    toast('🗑️ Plotagem excluída');
-  }
-
-  // ── MODAL ─────────────────────────────────────────────────
-  function abrirModal() { document.getElementById('overlay').classList.add('on'); }
-  function fecharModal() { document.getElementById('overlay').classList.remove('on'); }
-  function fecharSeFora(e) { if (e.target === document.getElementById('overlay')) fecharModal(); }
-
-  // ── SALVAR ────────────────────────────────────────────────
-  function salvar() {
-    const data   = document.getElementById('f-data').value;
-    const nota   = document.getElementById('f-nota').value.trim();
-    const valor  = document.getElementById('f-valor').value;
-    const status = document.getElementById('f-status').value;
-
-    if (!data || !nota || !valor) { toast('⚠️ Preencha todos os campos!'); return; }
-
-    const btn = document.getElementById('btn-save');
-    btn.disabled = true; btn.textContent = 'Salvando...';
-
-    const novo = { id: gerarId(), data, nota, valor: Number(valor), status, criadoEm: Date.now() };
-    dados.push(novo);
-    salvarDados(dados);
-    filtrar();
-    fecharModal();
-    toast('✅ Plotagem salva com sucesso!');
-
-    document.getElementById('f-nota').value  = '';
-    document.getElementById('f-valor').value = '';
-    document.getElementById('f-status').value = 'pendente';
-
-    btn.disabled = false; btn.textContent = 'Salvar';
-  }
-
-  // ── EXPORTAR CSV ──────────────────────────────────────────
-  function exportarCSV() {
-    const mes = document.getElementById('filtro-mes').value;
-    const filtrado = dados.filter(r => r.data && String(r.data).startsWith(mes));
-    if (!filtrado.length) { toast('⚠️ Nenhuma plotagem no mês selecionado'); return; }
-
-    const linhas = [['Data','Nº da Nota','Valor (R$)','Status']];
-    filtrado
-      .sort((a,b) => String(b.data).localeCompare(String(a.data)))
-      .forEach(r => linhas.push([fmtData(r.data), r.nota, Number(r.valor).toFixed(2).replace('.',','), r.status === 'pago' ? 'Pago' : 'Pendente']));
-
-    const csv = linhas.map(l => l.map(c => `"${c}"`).join(';')).join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `plotagens_${mes}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('📥 CSV exportado!');
-  }
-
-  // ── TOAST ─────────────────────────────────────────────────
-  function toast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 3000);
+  function limparSelecao() { selecionados.clear(); filtrar(); atualizarBulkBar(); }
+  function toast(m) {
+    const t = document.getElementById('toast');
+    t.textContent = m; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
   }
 </script>
 </body>

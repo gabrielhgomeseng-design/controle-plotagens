@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle de Plotagens Pro (Local)</title>
+<title>Controle de Plotagens Pro</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -46,7 +49,6 @@
   th{background:#f8fafc;padding:14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;border-bottom:1px solid #e2e8f0}
   td{padding:14px;font-size:14px;border-bottom:1px solid #f1f5f9;cursor:pointer}
   tr:hover td{background:#f8fafc}
-  tr.selected td{background:#eff6ff}
   
   .badge{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;display:inline-block}
   .badge.pago{background:#dcfce7;color:#16a34a}
@@ -77,7 +79,7 @@
 <div class="header">
   <div class="header-left">
     <h1>🖨️ Controle de Plotagens</h1>
-    <p id="mes-label">Janeiro de 2024</p>
+    <p id="mes-label">Carregando...</p>
   </div>
   <button class="btn-new" onclick="abrirModal()">+ Nova Plotagem</button>
 </div>
@@ -154,20 +156,36 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  // --- LÓGICA DE DADOS (LOCALSTORAGE) ---
-  let dados = JSON.parse(localStorage.getItem('minhas_plotagens')) || [];
+  const firebaseConfig = {
+    apiKey: "AIzaSyAsO8n3y-d3pqjfc0S67nxit4Tr6TZ8PVA",
+    authDomain: "coordly-plotagens.firebaseapp.com",
+    projectId: "coordly-plotagens",
+    storageBucket: "coordly-plotagens.firebasestorage.app",
+    messagingSenderId: "763620105484",
+    appId: "1:763620105484:web:5b4821f227857e49233d29"
+  };
+
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let dados = [];
   let selecionados = new Set();
 
   (function init() {
     const agora = new Date();
     const mes = agora.toISOString().slice(0, 7);
     document.getElementById('filtro-mes').value = mes;
-    filtrar();
+    carregar();
   })();
 
-  function salvarNoStorage() {
-    localStorage.setItem('minhas_plotagens', JSON.stringify(dados));
-    filtrar();
+  async function carregar() {
+    document.getElementById('area').innerHTML = '<p style="text-align:center; padding:40px; color:#64748b">Buscando dados...</p>';
+    try {
+      db.collection('plotagens').orderBy('data', 'desc').onSnapshot(snapshot => {
+        dados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        filtrar();
+      });
+    } catch(e) { console.error(e); }
   }
 
   function filtrar() {
@@ -181,7 +199,7 @@
   function atualizarLabelMes(mes) {
     const [a, m] = mes.split('-');
     const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    document.getElementById('mes-label').textContent = (nomes[+m - 1] || 'Mês') + ' de ' + a;
+    document.getElementById('mes-label').textContent = nomes[+m - 1] + ' de ' + a;
   }
 
   function fmt(v) { return 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits: 2}); }
@@ -199,9 +217,8 @@
   }
 
   function renderTabela(d) {
-    const area = document.getElementById('area');
     if (!d.length) {
-      area.innerHTML = '<div style="text-align:center; padding:60px; color:#94a3b8">Nenhum registro encontrado.</div>';
+      document.getElementById('area').innerHTML = '<div style="text-align:center; padding:60px; color:#94a3b8">Nenhum registro.</div>';
       return;
     }
     let html = `<table><thead><tr><th style="width:40px"><input type="checkbox" onchange="toggleTodos(this)"></th><th>Data</th><th>Nota</th><th>Valor</th><th>Status</th></tr></thead><tbody>`;
@@ -215,81 +232,65 @@
         <td onclick="prepararEdicao('${r.id}')"><span class="badge ${r.status}">${r.status.toUpperCase()}</span></td>
       </tr>`;
     });
-    area.innerHTML = html + '</tbody></table>';
+    document.getElementById('area').innerHTML = html + '</tbody></table>';
   }
 
-  // --- PDF ---
+  // --- FUNÇÃO DO PDF ---
   async function gerarPDFPendentes() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const mesRef = document.getElementById('filtro-mes').value;
-    const pendentes = dados.filter(r => String(r.data).startsWith(mesRef) && r.status === 'pendente');
+    const mesReferencia = document.getElementById('filtro-mes').value;
+    const pendentes = dados.filter(r => String(r.data).startsWith(mesReferencia) && r.status === 'pendente');
 
-    if (!pendentes.length) return toast("⚠️ Nenhuma pendência!");
+    if (pendentes.length === 0) {
+        toast("⚠️ Nenhuma nota pendente para este mês!");
+        return;
+    }
 
     doc.setFontSize(18);
     doc.text("Relatorio de Plotagens Pendentes", 14, 20);
-    doc.setFontSize(11);
-    doc.text(`Referencia: ${mesRef}`, 14, 28);
+    doc.setFontSize(12);
+    doc.text(`Referencia: ${mesReferencia}`, 14, 28);
 
-    const corpo = pendentes.map(r => [r.data.split('-').reverse().join('/'), `#${r.nota}`, fmt(r.valor)]);
-    const total = pendentes.reduce((s, r) => s + Number(r.valor), 0);
+    const corpoTabela = pendentes.map(r => [
+        r.data.split('-').reverse().join('/'),
+        `#${r.nota}`,
+        fmt(r.valor)
+    ]);
+
+    const totalValor = pendentes.reduce((s, r) => s + Number(r.valor), 0);
 
     doc.autoTable({
         startY: 35,
         head: [['Data', 'Nota', 'Valor']],
-        body: corpo,
-        foot: [['', 'TOTAL PENDENTE', fmt(total)]],
+        body: corpoTabela,
+        foot: [['', 'TOTAL PENDENTE', fmt(totalValor)]],
         theme: 'striped',
         headStyles: { fillColor: [30, 58, 138] }
     });
 
-    doc.save(`pendentes_${mesRef}.pdf`);
-    toast("✅ PDF gerado!");
+    doc.save(`pendentes_${mesReferencia}.pdf`);
+    toast("✅ PDF gerado com sucesso!");
   }
 
-  // --- CRUD ---
-  function salvar() {
-    const id = document.getElementById('f-id').value;
-    const obj = {
-      id: id || Date.now().toString(),
-      data: document.getElementById('f-data').value,
-      nota: document.getElementById('f-nota').value,
-      valor: Number(document.getElementById('f-valor').value),
-      status: document.getElementById('f-status').value
-    };
-
-    if (!obj.data || !obj.nota || !obj.valor) return toast("⚠️ Preencha tudo!");
-
-    if (id) {
-      const idx = dados.findIndex(x => x.id === id);
-      dados[idx] = obj;
-    } else {
-      dados.push(obj);
-    }
-
-    salvarNoStorage();
-    fecharModal();
-    toast("✅ Salvo localmente!");
+  // --- CRUD E UI ---
+  function toggleSelecao(id, chk) { if (chk.checked) selecionados.add(id); else selecionados.delete(id); atualizarBulkBar(); }
+  function toggleTodos(chk) { 
+    const mes = document.getElementById('filtro-mes').value;
+    dados.filter(r => String(r.data).startsWith(mes)).forEach(r => { if (chk.checked) selecionados.add(r.id); else selecionados.delete(r.id); });
+    filtrar(); atualizarBulkBar(); 
   }
-
-  function excluirViaModal() {
-    if (!confirm("Excluir?")) return;
-    const id = document.getElementById('f-id').value;
-    dados = dados.filter(x => x.id !== id);
-    salvarNoStorage();
-    fecharModal();
-    toast("🗑️ Excluído");
+  function atualizarBulkBar() {
+    const bar = document.getElementById('bulk-bar');
+    bar.classList.toggle('on', selecionados.size > 0);
+    document.getElementById('bulk-info').textContent = `${selecionados.size} selecionados`;
   }
-
-  function marcarLote(status) {
-    dados = dados.map(r => selecionados.has(r.id) ? {...r, status} : r);
-    limparSelecao();
-    salvarNoStorage();
-    toast("✅ Atualizado!");
+  function limparSelecao() { selecionados.clear(); filtrar(); atualizarBulkBar(); }
+  async function marcarLote(status) {
+    const batch = db.batch();
+    selecionados.forEach(id => batch.update(db.collection('plotagens').doc(id), { status }));
+    await batch.commit(); limparSelecao(); toast("✅ Atualizado!");
   }
-
-  // --- UI ---
   function abrirModal() {
     document.getElementById('f-id').value = "";
     document.getElementById('f-data').value = new Date().toISOString().slice(0, 10);
@@ -299,7 +300,6 @@
     document.getElementById('btn-delete-modal').style.display = "none";
     document.getElementById('overlay').classList.add('on');
   }
-
   function prepararEdicao(id) {
     const r = dados.find(x => x.id === id);
     document.getElementById('f-id').value = r.id;
@@ -307,25 +307,32 @@
     document.getElementById('f-nota').value = r.nota;
     document.getElementById('f-valor').value = r.valor;
     document.getElementById('f-status').value = r.status;
-    document.getElementById('modal-titulo').textContent = "✏️ Editar";
+    document.getElementById('modal-titulo').textContent = "✏️ Editar Registro";
     document.getElementById('btn-delete-modal').style.display = "block";
     document.getElementById('overlay').classList.add('on');
   }
-
   function fecharModal() { document.getElementById('overlay').classList.remove('on'); }
   function fecharSeFora(e) { if (e.target.id === 'overlay') fecharModal(); }
-  function toggleSelecao(id, chk) { if (chk.checked) selecionados.add(id); else selecionados.delete(id); atualizarBulkBar(); }
-  function toggleTodos(chk) { 
-    const mes = document.getElementById('filtro-mes').value;
-    dados.filter(r => r.data.startsWith(mes)).forEach(r => chk.checked ? selecionados.add(r.id) : selecionados.delete(r.id));
-    filtrar(); atualizarBulkBar(); 
+  async function salvar() {
+    const id = document.getElementById('f-id').value;
+    const obj = {
+      data: document.getElementById('f-data').value,
+      nota: document.getElementById('f-nota').value,
+      valor: Number(document.getElementById('f-valor').value),
+      status: document.getElementById('f-status').value
+    };
+    if (!obj.data || !obj.nota || !obj.valor) return toast("⚠️ Preencha tudo!");
+    try {
+      if (id) await db.collection('plotagens').doc(id).update(obj);
+      else await db.collection('plotagens').add(obj);
+      fecharModal(); toast("✅ Sucesso!");
+    } catch(e) { toast("❌ Erro"); }
   }
-  function atualizarBulkBar() {
-    const bar = document.getElementById('bulk-bar');
-    bar.classList.toggle('on', selecionados.size > 0);
-    document.getElementById('bulk-info').textContent = `${selecionados.size} selecionados`;
+  async function excluirViaModal() {
+    if (!confirm("Excluir?")) return;
+    await db.collection('plotagens').doc(document.getElementById('f-id').value).delete();
+    fecharModal(); toast("🗑️ Excluído");
   }
-  function limparSelecao() { selecionados.clear(); filtrar(); atualizarBulkBar(); }
   function toast(m) {
     const t = document.getElementById('toast');
     t.textContent = m; t.classList.add('show');

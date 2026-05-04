@@ -4,10 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Controle de Plotagens</title>
-
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
-
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;color:#1e293b;min-height:100vh}
@@ -34,8 +30,9 @@
   .bar input[type=month]:focus{border-color:#2563eb}
   .btn-refresh{background:#eff6ff;color:#2563eb;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
   .btn-refresh:hover{background:#dbeafe}
+  .btn-export{background:#f0fdf4;color:#16a34a;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
+  .btn-export:hover{background:#dcfce7}
 
-  /* BARRA DE AÇÕES EM LOTE */
   .bulk-bar{display:none;margin:0 20px 10px;background:#1e3a8a;color:#fff;border-radius:10px;padding:10px 16px;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
   .bulk-bar.on{display:flex}
   .bulk-info{font-size:13px;font-weight:700}
@@ -90,12 +87,6 @@
 
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(70px);background:#0f172a;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;transition:transform .28s cubic-bezier(.34,1.56,.64,1);z-index:200;white-space:nowrap}
   .toast.show{transform:translateX(-50%) translateY(0)}
-
-  .loading-box{text-align:center;padding:48px;color:#94a3b8;font-size:13px}
-  .spin{width:26px;height:26px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:rot .7s linear infinite;margin:0 auto 12px}
-  @keyframes rot{to{transform:rotate(360deg)}}
-
-  .error-box{margin:0 20px 20px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;font-size:13px;color:#dc2626}
 </style>
 </head>
 <body>
@@ -132,10 +123,10 @@
 <div class="bar">
   <label>Mês:</label>
   <input type="month" id="filtro-mes" onchange="filtrar()">
-  <button class="btn-refresh" onclick="carregar()">↻ Atualizar</button>
+  <button class="btn-refresh" onclick="filtrar()">↻ Atualizar</button>
+  <button class="btn-export" onclick="exportarCSV()">⬇️ Exportar CSV</button>
 </div>
 
-<!-- BARRA DE AÇÕES EM LOTE -->
 <div class="bulk-bar" id="bulk-bar">
   <span class="bulk-info" id="bulk-info">0 notas selecionadas</span>
   <div class="bulk-actions">
@@ -146,9 +137,7 @@
 </div>
 
 <div class="table-wrap">
-  <div id="area">
-    <div class="loading-box"><div class="spin"></div>Carregando...</div>
-  </div>
+  <div id="area"></div>
 </div>
 
 <div class="overlay" id="overlay" onclick="fecharSeFora(event)">
@@ -185,28 +174,34 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAsO8n3y-d3pqjfc0S67nxit4Tr6TZ8PVA",
-    authDomain: "coordly-plotagens.firebaseapp.com",
-    projectId: "coordly-plotagens",
-    storageBucket: "coordly-plotagens.firebasestorage.app",
-    messagingSenderId: "763620105484",
-    appId: "1:763620105484:web:5b4821f227857e49233d29"
-  };
+  // ── STORAGE ───────────────────────────────────────────────
+  const CHAVE = 'plotagens_gvc';
 
-  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+  function lerDados() {
+    try { return JSON.parse(localStorage.getItem(CHAVE) || '[]'); }
+    catch(e) { return []; }
+  }
 
+  function salvarDados(arr) {
+    localStorage.setItem(CHAVE, JSON.stringify(arr));
+  }
+
+  function gerarId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  // ── STATE ─────────────────────────────────────────────────
   let dados = [];
   let selecionados = new Set();
 
+  // ── INIT ──────────────────────────────────────────────────
   (function init() {
     const agora = new Date();
     const mes = agora.toISOString().slice(0, 7);
     document.getElementById('filtro-mes').value = mes;
     document.getElementById('f-data').value = agora.toISOString().slice(0, 10);
-    atualizarLabelMes(mes);
-    carregar();
+    dados = lerDados();
+    filtrar();
   })();
 
   function atualizarLabelMes(mes) {
@@ -215,21 +210,7 @@
     document.getElementById('mes-label').textContent = nomes[+m - 1] + ' de ' + a;
   }
 
-  async function carregar() {
-    document.getElementById('area').innerHTML = '<div class="loading-box"><div class="spin"></div>Carregando...</div>';
-    selecionados.clear();
-    atualizarBulkBar();
-    try {
-      const snapshot = await db.collection('plotagens').get();
-      dados = [];
-      snapshot.forEach(doc => dados.push({ id: doc.id, ...doc.data() }));
-      filtrar();
-    } catch(e) {
-      document.getElementById('area').innerHTML =
-        '<div class="error-box">❌ Não foi possível conectar ao Firebase.<br>Verifique se tem internet ou se as regras estão corretas.</div>';
-    }
-  }
-
+  // ── FILTRAR / RENDER ──────────────────────────────────────
   function filtrar() {
     const mes = document.getElementById('filtro-mes').value;
     atualizarLabelMes(mes);
@@ -240,6 +221,12 @@
 
   function fmt(v) {
     return 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+  }
+
+  function fmtData(d) {
+    if (!d) return '—';
+    const [a, m, dia] = String(d).split('-');
+    return `${dia}/${m}/${a}`;
   }
 
   function renderCards(d) {
@@ -292,12 +279,6 @@
       </table>`;
   }
 
-  function fmtData(d) {
-    if (!d) return '—';
-    const [a,m,dia] = String(d).split('-');
-    return `${dia}/${m}/${a}`;
-  }
-
   // ── SELEÇÃO ───────────────────────────────────────────────
   function toggleSelecao(id, chk) {
     if (chk.checked) selecionados.add(id);
@@ -342,57 +323,42 @@
   }
 
   // ── AÇÃO EM LOTE ──────────────────────────────────────────
-  async function marcarLote(novoStatus) {
+  function marcarLote(novoStatus) {
     if (!selecionados.size) return;
     const ids = [...selecionados];
     const label = novoStatus === 'pago' ? 'pagas' : 'pendentes';
-
-    try {
-      const batch = db.batch();
-      ids.forEach(id => {
-        const ref = db.collection('plotagens').doc(id);
-        batch.update(ref, { status: novoStatus });
-      });
-      await batch.commit();
-
-      ids.forEach(id => {
-        const rec = dados.find(r => r.id === id);
-        if (rec) rec.status = novoStatus;
-      });
-
-      selecionados.clear();
-      filtrar();
-      atualizarBulkBar();
-      toast(`✅ ${ids.length} nota${ids.length !== 1 ? 's' : ''} marcada${ids.length !== 1 ? 's' : ''} como ${label}!`);
-    } catch(e) {
-      toast('Erro ao atualizar em lote');
-      console.error(e);
-    }
+    ids.forEach(id => {
+      const rec = dados.find(r => r.id === id);
+      if (rec) rec.status = novoStatus;
+    });
+    salvarDados(dados);
+    selecionados.clear();
+    filtrar();
+    atualizarBulkBar();
+    toast(`✅ ${ids.length} nota${ids.length !== 1 ? 's' : ''} marcada${ids.length !== 1 ? 's' : ''} como ${label}!`);
   }
 
   // ── STATUS INDIVIDUAL ─────────────────────────────────────
-  async function alterarStatus(id, statusAtual) {
+  function alterarStatus(id, statusAtual) {
     const novo = statusAtual === 'pago' ? 'pendente' : 'pago';
-    try {
-      await db.collection('plotagens').doc(id).update({ status: novo });
-      const rec = dados.find(r => r.id === id);
-      if (rec) rec.status = novo;
+    const rec = dados.find(r => r.id === id);
+    if (rec) {
+      rec.status = novo;
+      salvarDados(dados);
       filtrar();
       toast(novo === 'pago' ? '✅ Marcado como pago!' : '⏳ Marcado como pendente');
-    } catch(e) { toast('Erro ao atualizar status'); }
+    }
   }
 
   // ── EXCLUIR ───────────────────────────────────────────────
-  async function excluir(id) {
+  function excluir(id) {
     if (!confirm('Excluir esta plotagem?')) return;
-    try {
-      await db.collection('plotagens').doc(id).delete();
-      dados = dados.filter(r => r.id !== id);
-      selecionados.delete(id);
-      filtrar();
-      atualizarBulkBar();
-      toast('🗑️ Plotagem excluída');
-    } catch(e) { toast('Erro ao excluir'); }
+    dados = dados.filter(r => r.id !== id);
+    selecionados.delete(id);
+    salvarDados(dados);
+    filtrar();
+    atualizarBulkBar();
+    toast('🗑️ Plotagem excluída');
   }
 
   // ── MODAL ─────────────────────────────────────────────────
@@ -401,9 +367,9 @@
   function fecharSeFora(e) { if (e.target === document.getElementById('overlay')) fecharModal(); }
 
   // ── SALVAR ────────────────────────────────────────────────
-  async function salvar() {
+  function salvar() {
     const data   = document.getElementById('f-data').value;
-    const nota   = document.getElementById('f-nota').value;
+    const nota   = document.getElementById('f-nota').value.trim();
     const valor  = document.getElementById('f-valor').value;
     const status = document.getElementById('f-status').value;
 
@@ -412,23 +378,40 @@
     const btn = document.getElementById('btn-save');
     btn.disabled = true; btn.textContent = 'Salvando...';
 
-    try {
-      const docRef = await db.collection('plotagens').add({
-        data, nota, valor: Number(valor), status,
-        criadoEm: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      dados.push({ id: docRef.id, data, nota, valor, status });
-      filtrar();
-      fecharModal();
-      toast('✅ Plotagem salva com sucesso!');
-      document.getElementById('f-nota').value  = '';
-      document.getElementById('f-valor').value = '';
-      document.getElementById('f-status').value = 'pendente';
-    } catch(e) {
-      toast('Erro ao salvar.');
-    } finally {
-      btn.disabled = false; btn.textContent = 'Salvar';
-    }
+    const novo = { id: gerarId(), data, nota, valor: Number(valor), status, criadoEm: Date.now() };
+    dados.push(novo);
+    salvarDados(dados);
+    filtrar();
+    fecharModal();
+    toast('✅ Plotagem salva com sucesso!');
+
+    document.getElementById('f-nota').value  = '';
+    document.getElementById('f-valor').value = '';
+    document.getElementById('f-status').value = 'pendente';
+
+    btn.disabled = false; btn.textContent = 'Salvar';
+  }
+
+  // ── EXPORTAR CSV ──────────────────────────────────────────
+  function exportarCSV() {
+    const mes = document.getElementById('filtro-mes').value;
+    const filtrado = dados.filter(r => r.data && String(r.data).startsWith(mes));
+    if (!filtrado.length) { toast('⚠️ Nenhuma plotagem no mês selecionado'); return; }
+
+    const linhas = [['Data','Nº da Nota','Valor (R$)','Status']];
+    filtrado
+      .sort((a,b) => String(b.data).localeCompare(String(a.data)))
+      .forEach(r => linhas.push([fmtData(r.data), r.nota, Number(r.valor).toFixed(2).replace('.',','), r.status === 'pago' ? 'Pago' : 'Pendente']));
+
+    const csv = linhas.map(l => l.map(c => `"${c}"`).join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `plotagens_${mes}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('📥 CSV exportado!');
   }
 
   // ── TOAST ─────────────────────────────────────────────────
